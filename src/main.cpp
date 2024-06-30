@@ -17,8 +17,13 @@
 // const char *ssid = "blackcrow_01";
 const char *ssid = "Hamburgo 101 5G Nova";
 const char *password = "8001017170";
+// URL to send the result when the puzle is ready (all the strips selected)
+char *url2SendResult = "http://homeassistant.local:1880/endpoint/lab/rotarydata";
+int rotaryNumber = 1;
+
 AsyncWebServer server(80); // to handle the published API
 int valor = 0;
+int lastReportedValue = -3;
 Rotary r = Rotary(32, 35);
 
 /// @brief Handle the API call
@@ -48,7 +53,7 @@ void postRule(AsyncWebServerRequest *request, uint8_t *data)
     request->send(200, "application/json", "{\"value\":\"" + String(valor) + "\"}");
     Serial.println("Command received: value");
   }
-
+  // curl -X POST http://192.168.1.186/api/command -H "Content-Type: application/json" -d '{"command":"setValue=0"}'
   else if (receivedData.indexOf("setValue=") != -1)
   {
     int startIndex = receivedData.indexOf("setValue=") + 9;
@@ -73,6 +78,52 @@ void postRule(AsyncWebServerRequest *request, uint8_t *data)
   }
 }
 
+void sendRotaryValue(int valueToReport)
+{
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    HTTPClient http;
+    http.begin(url2SendResult); // Replace with your API endpoint
+    http.addHeader("Content-Type", "application/json");
+
+    String payload = "{\"rotary\":" + String(rotaryNumber) + ",\"value\":" + String(valueToReport) + "}";
+    int httpResponseCode = http.POST(payload);
+
+    if (httpResponseCode > 0)
+    {
+      String response = http.getString();
+      Serial.println("HTTP Response code: " + String(httpResponseCode));
+      Serial.println("Response: " + response);
+    }
+    else
+    {
+      Serial.println("Error on sending POST: " + String(httpResponseCode));
+    }
+    http.end();
+  }
+  else
+  {
+    Serial.println("WiFi not connected");
+  }
+}
+
+TaskHandle_t Task1; // Definir el Handle para que compile
+void Task1code( void * parameter) {
+  Serial.print("Task1code() running on core ");
+  Serial.println(xPortGetCoreID());
+
+  for (;;) {
+    // put your main code here, to run repeatedly:
+    if (lastReportedValue != valor)
+    {
+       lastReportedValue = valor;
+       sendRotaryValue(lastReportedValue);
+    }
+    delay(50);
+  }
+  
+}
+
 void setup()
 {
   Serial.begin(9600);
@@ -95,8 +146,17 @@ void setup()
 
   server.begin();
   r.begin(true);
+  
+ // Multitask setup
+ xTaskCreatePinnedToCore(
+      Task1code, /* Function to implement the task */
+      "Task1", /* Name of the task */
+      10000,  /* Stack size in words */
+      NULL,  /* Task input parameter */
+      0,  /* Priority of the task */
+      &Task1,  /* Task handle. */
+      0); /* Core where the task should run */
 }
-
 void loop()
 {
   unsigned char result = r.process();
