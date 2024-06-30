@@ -14,8 +14,8 @@
 #include <HTTPClient.h>
 #include <ESPAsyncWebServer.h>
 
-// const char *ssid = "blackcrow_01";
-const char *ssid = "Hamburgo 101 5G Nova";
+const char *ssid = "blackcrow_01";
+const char *ssid2 = "Hamburgo 101 5G Nova";
 const char *password = "8001017170";
 // URL to send the result when the puzle is ready (all the strips selected)
 String url2SendResult = "http://homeassistant.local:1880/endpoint/lab/rotarydata";
@@ -71,7 +71,7 @@ void postRule(AsyncWebServerRequest *request, uint8_t *data)
     request->send(200, "application/json", "{\"status\":\"value set to:\"" + String(valueValue) + "}");
     Serial.println("Command received: updateInterval=" + String(valueValue));
   }
-  //curl -X POST http://192.168.1.186/api/command -H "Content-Type: application/json" -d '{"command":"setUrl=http://homeassistant.local:1880/endpoint/lab/rotarydata"}'
+  // curl -X POST http://192.168.1.186/api/command -H "Content-Type: application/json" -d '{"command":"setUrl=http://homeassistant.local:1880/endpoint/lab/rotarydata"}'
   else if (receivedData.indexOf("setUrl=") != -1)
   {
     int startIndex = receivedData.indexOf("setUrl=") + 7;
@@ -144,20 +144,21 @@ void sendRotaryValue(int valueToReport)
 }
 
 TaskHandle_t Task1; // Definir el Handle para que compile
-void Task1code( void * parameter) {
+void Task1code(void *parameter)
+{
   Serial.print("Task1code() running on core ");
   Serial.println(xPortGetCoreID());
 
-  for (;;) {
+  for (;;)
+  {
     // put your main code here, to run repeatedly:
     if (lastReportedValue != valor)
     {
-       lastReportedValue = valor;
-       sendRotaryValue(lastReportedValue);
+      lastReportedValue = valor;
+      sendRotaryValue(lastReportedValue);
     }
     delay(50);
   }
-  
 }
 
 void setup()
@@ -166,10 +167,21 @@ void setup()
 
   // Wifi setup
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED)
+  int retries = 0;
+  while ((WiFi.status() != WL_CONNECTED) && (retries < 3))
   {
     delay(1000);
     Serial.println("Connecting to WiFi...");
+    retries++;
+  }
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    WiFi.begin(ssid2, password);
+    while (WiFi.status() != WL_CONNECTED) 
+    {
+      delay(1000);
+      Serial.println("Connecting to 2nd WiFi...");
+    }
   }
   Serial.println("Connected to WiFi");
 
@@ -182,16 +194,16 @@ void setup()
 
   server.begin();
   r.begin(true);
-  
- // Multitask setup
- xTaskCreatePinnedToCore(
+
+  // Multitask setup
+  xTaskCreatePinnedToCore(
       Task1code, /* Function to implement the task */
-      "Task1", /* Name of the task */
-      10000,  /* Stack size in words */
-      NULL,  /* Task input parameter */
-      0,  /* Priority of the task */
-      &Task1,  /* Task handle. */
-      0); /* Core where the task should run */
+      "Task1",   /* Name of the task */
+      10000,     /* Stack size in words */
+      NULL,      /* Task input parameter */
+      0,         /* Priority of the task */
+      &Task1,    /* Task handle. */
+      0);        /* Core where the task should run */
 }
 void loop()
 {
