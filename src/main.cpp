@@ -18,7 +18,7 @@
 const char *ssid = "Hamburgo 101 5G Nova";
 const char *password = "8001017170";
 // URL to send the result when the puzle is ready (all the strips selected)
-char *url2SendResult = "http://homeassistant.local:1880/endpoint/lab/rotarydata";
+String url2SendResult = "http://homeassistant.local:1880/endpoint/lab/rotarydata";
 int rotaryNumber = 1;
 
 AsyncWebServer server(80); // to handle the published API
@@ -71,6 +71,24 @@ void postRule(AsyncWebServerRequest *request, uint8_t *data)
     request->send(200, "application/json", "{\"status\":\"value set to:\"" + String(valueValue) + "}");
     Serial.println("Command received: updateInterval=" + String(valueValue));
   }
+  //curl -X POST http://192.168.1.186/api/command -H "Content-Type: application/json" -d '{"command":"setUrl=http://homeassistant.local:1880/endpoint/lab/rotarydata"}'
+  else if (receivedData.indexOf("setUrl=") != -1)
+  {
+    int startIndex = receivedData.indexOf("setUrl=") + 7;
+    int endIndex = receivedData.indexOf('}', startIndex); // Assuming commands are space-separated
+
+    if (endIndex == -1)
+    {
+      endIndex = receivedData.length();
+    }
+
+    String valueStr = receivedData.substring(startIndex, endIndex);
+    url2SendResult = valueStr;
+
+    request->send(200, "application/json", "{\"status\":\"urlValue set to:\"" + String(url2SendResult) + "}");
+    Serial.println("Command received: setUrl=" + valueStr);
+  }
+
   else
   {
     request->send(400, "application/json", "{\"status\":\"invalid command\"}");
