@@ -14,8 +14,8 @@
 #include <HTTPClient.h>
 #include <ESPAsyncWebServer.h>
 
-const char *ssid = "blackcrow_01";
-const char *ssid2 = "Hamburgo 101 5G Nova";
+const char *ssid2 = "blackcrow_01";
+const char *ssid = "Hamburgo 101 5G Nova";
 const char *password = "8001017170";
 // URL to send the result when the puzle is ready (all the strips selected)
 String url2SendResult = "http://homeassistant.local:1880/endpoint/lab/rotarydata";
