@@ -89,6 +89,24 @@ void postRule(AsyncWebServerRequest *request, uint8_t *data)
     Serial.println("Command received: setUrl=" + valueStr);
   }
 
+  // curl -X POST http://192.168.1.186/api/command -H "Content-Type: application/json" -d '{"command":"setRotary=2"}'
+  else if (receivedData.indexOf("setRotary=") != -1)
+  {
+    int startIndex = receivedData.indexOf("setRotary=") + 10;
+    int endIndex = receivedData.indexOf(' ', startIndex); // Assuming commands are space-separated
+
+    if (endIndex == -1)
+    {
+      endIndex = receivedData.length();
+    }
+
+    String valueStr = receivedData.substring(startIndex, endIndex);
+    int valueValue = valueStr.toInt();
+    rotaryNumber = valueValue;
+
+    request->send(200, "application/json", "{\"status\":\"rotary set to:\"" + String(valueValue) + "}");
+    Serial.println("Command received: setRotary=" + String(valueValue));
+  }
   else
   {
     request->send(400, "application/json", "{\"status\":\"invalid command\"}");
