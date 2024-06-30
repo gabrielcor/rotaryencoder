@@ -5,7 +5,7 @@
     * encoder pin A to Arduino pin 2
     * encoder pin B to Arduino pin 3
     * encoder ground pin to ground (GND)
-       * Clock: 35
+    * Clock: 35
     * Data: 32
 */
 #include <Arduino.h>
